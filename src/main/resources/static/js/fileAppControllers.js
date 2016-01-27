@@ -119,7 +119,83 @@ function fileCtrl ($scope, $http, $log, $timeout, Upload) {
 	
 	//Initialization
 	$scope.init("boy");
-
 }
 
+var ngJsTreeController = function($scope, $log, $timeout,toaster) {
+	var newId = 1;
+	$scope.ignoreChanges = false;
+	$scope.newNode = {};
+	$scope.originalData = [
+        { id : 'ajson1', parent : '#', text : 'Simple root node', state: { opened: true} },
+        { id : 'ajson2', parent : '#', text : 'Root node 2', state: { opened: true} },
+        { id : 'ajson3', parent : 'ajson2', text : 'Child 1', state: { opened: true} },
+        { id : 'ajson4', parent : 'ajson2', text : 'Child 2' , state: { opened: true}}
+    ];
+	$scope.treeData = [];
+    angular.copy($scope.originalData,$scope.treeData);
+    $scope.treeConfig = {
+        core : {
+            multiple : false,
+            animation: true,
+            error : function(error) {
+                $log.error('treeCtrl: error from js tree - ' + angular.toJson(error));
+            },
+            check_callback : true,
+            worker : true
+        },
+        types : {
+            default : {
+                icon : 'glyphicon glyphicon-flash'
+            },
+            star : {
+                icon : 'glyphicon glyphicon-star'
+            },
+            cloud : {
+                icon : 'glyphicon glyphicon-cloud'
+            }
+        },
+        version : 1,
+        plugins : ['types','checkbox']
+    };
+
+
+    $scope.reCreateTree = function() {
+        vm.ignoreChanges = true;
+        angular.copy(this.originalData,this.treeData);
+        vm.treeConfig.version++;
+    };
+
+    $scope.simulateAsyncData = function() {
+    	$scope.promise = $timeout(function(){
+    		$scope.treeData.push({ id : (newId++).toString(), parent : $scope.treeData[0].id, text : 'Async Loaded' })
+        },3000);
+    };
+
+    $scope.addNewNode = function() {
+    	$scope.treeData.push({ id : (newId++).toString(), parent : $scope.newNode.parent, text : $scope.newNode.text });
+    };
+
+    this.setNodeType = function() {
+        var item = _.findWhere(this.treeData, { id : this.selectedNode } );
+        item.type = this.newType;
+        toaster.pop('success', 'Node Type Changed', 'Changed the type of node ' + this.selectedNode);
+    };
+
+    this.readyCB = function() {
+        $timeout(function() {
+        	$scope.ignoreChanges = false;
+            toaster.pop('success', 'JS Tree Ready', 'Js Tree issued the ready event')
+        });
+    };
+
+    this.createCB  = function(e,item) {
+        $timeout(function() {toaster.pop('success', 'Node Added', 'Added new node with the text ' + item.node.text)});
+    };
+
+    this.applyModelChanges = function() {
+        return !$scope.ignoreChanges;
+    };
+};
+
 angular.module('fileApp').controller('fileCtrl', fileCtrl);
+angular.module('fileApp').controller('ngJsTreeController', ngJsTreeController);
